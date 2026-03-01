@@ -18,10 +18,9 @@ bun run index.ts
 ```
 
 ### To-do List
-[x] Basic Coding Agent
-- System prompt for working with Vite sandbox
-- Basic tools for situating codebase (`list-files`, `read-files`, `update-file`, `create-file`, `grep`)
-- CLI interface
-
-[ ] Coding Agent with Planning
-[ ] Coding Agent with Sandbox Skills & Memory
+- [x] Basic Coding Agent
+  - System prompt for working with Vite sandbox
+  - Basic tools for situating codebase (`list-files`, `read-files`, `update-file`, `create-file`, `grep`)
+  - CLI interface
+- [ ] Coding Agent with Planning
+- [ ] Coding Agent with Sandbox Skills & Memory
