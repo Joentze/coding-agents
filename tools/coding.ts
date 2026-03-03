@@ -161,6 +161,21 @@ const grep = ({ sandbox, workdir = codebaseWorkDir }: ToolContext) => {
     })
 }
 
+const checkLint = ({ sandbox, workdir = codebaseWorkDir }: ToolContext) => {
+    return tool({
+        description: "checks for lint errors in the codebase",
+        inputSchema: z.object({}),
+        execute: async () => {
+            const command = await sandbox.exec(["bun", "lint"], { workdir, timeoutMs })
+            const [stdout, stderr] = await Promise.all([command.stdout.readText(), command.stderr.readText()])
+            return `
+            stdout: ${stdout}
+            stderr: ${stderr ? stderr : "no errors"}
+            `
+        }
+    })
+}
 
 
-export { listFiles, readFile, editFile, createNewFile, grep }
+
+export { listFiles, readFile, editFile, createNewFile, grep, checkLint, type ToolContext, userModelMessageGenerateText }

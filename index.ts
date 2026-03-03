@@ -5,7 +5,8 @@ import { SYSTEM_PROMPT as instructions } from "./prompts/coding-agent-prompt";
 import { openai } from "@ai-sdk/openai";
 import { ToolLoopAgent, type ModelMessage } from "ai";
 import { ModalClient, Sandbox } from "modal";
-import { createNewFile, readFile, editFile, grep, listFiles } from "./tools/coding";
+import { createNewFile, readFile, editFile, grep, listFiles, checkLint, type ToolContext } from "./tools/coding";
+import { doTask, explore } from "./tools/call-sub-agent";
 
 const modal = new ModalClient({
     tokenId: process.env.MODAL_TOKEN_ID,
@@ -26,6 +27,7 @@ const tools = (sandbox: Sandbox) => {
         "edit-file": editFile({ sandbox }),
         "create-new-file": createNewFile({ sandbox }),
         "grep": grep({ sandbox }),
+        "check-lint": checkLint({ sandbox }),
     } as const
 }
 
@@ -36,6 +38,31 @@ const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
 })
+
+const coding = ({ sandbox, addedInstructions = "" }: { sandbox: Sandbox, addedInstructions?: string }) => new ToolLoopAgent({
+    instructions: [instructions, addedInstructions].join("/n/n"),
+    model: openai("gpt-5.3-codex"),
+    tools: tools(sandbox),
+})
+
+const orchestratorTools = (ctx: ToolContext) => {
+    return {
+        "explore-codebase": explore(ctx),
+        "create-task": "",
+        "do-task": doTask(ctx)
+    } as const
+}
+
+const orchestrator = (sandbox: Sandbox) => new ToolLoopAgent({
+    instructions,
+    model: openai("gpt-5.3-codex"),
+    providerOptions: {
+        openai: {
+            parallelToolCalls: false,
+        }
+    }
+})
+
 
 async function main() {
 
@@ -59,11 +86,7 @@ async function main() {
         console.log(chalk.magenta("Sandbox started:"))
         console.log(chalk.magentaBright(url))
         const messages: ModelMessage[] = []
-        const agent = new ToolLoopAgent({
-            instructions,
-            model: openai("gpt-5.3-codex"),
-            tools: tools(sandbox),
-        })
+
 
         while (true) {
             const userInput = await rl.question(chalk.green(": "))
@@ -71,7 +94,7 @@ async function main() {
             if (!userInput.trim()) continue
 
             messages.push({ role: "user", content: [{ type: "text", text: userInput }] })
-            const { fullStream } = await agent.stream({ messages })
+            const { fullStream } = await coding({ sandbox }).stream({ messages })
 
             let assistantText = ""
             for await (const part of fullStream) {
@@ -96,7 +119,6 @@ async function main() {
         }
 
         // exit sandbox
-        sandbox.detach()
         await sandbox.terminate()
     } catch (error) {
         console.error(chalk.red("Error:"), error)

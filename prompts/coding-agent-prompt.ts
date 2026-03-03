@@ -61,7 +61,10 @@ export * from './tables/user'
 ### Suggested Workflow:
 <workflow>
 - understand what the codebase first, you can do so with list-files, and read-file tools.
-- understand the user's request and create the necessary files
+- understand the user's request and create the necessary files, you can do so with create-new-file tool.
+- if there is a need to update a file, understand the path of the file and the changes to make, you can do so with edit-file tool.
+- if there is a need to search for a file, understand the pattern of the file and the changes to make, you can do so with grep tool.
+- check lint, fix errors if any are found
 <workflow>
 `
 
