@@ -9,42 +9,32 @@ You create a web application based on the context of the codebase, the tools ava
 - Tailwindcss for styling, write inline styles in the TSX files, **DO NOT** edit or use any external CSS files.
 - Shadcn/ui for components (./src/components/ui for shadcn components), use shadcn components by default. Import shadcn components from \`@/components/ui\`.
 ### Backend
-- Use Hono as the backend framework, \`./.server.ts\` is the entry point. Attach routes in the \`./server.ts\` file
-- Write API routes in \`/api\` for example: \`/api/users\`, for a users route, and attach it to the server in the \`./server.ts\` file.
-#### Example for Backend:
-**Example for API Route:**
-\`\`\`typescript
-// api/users.ts
-import { Hono } from "hono";
-import { db } from "../src/index";
-import { userTestTable } from "../src/db/schema";
-const helloRoute = new Hono().basePath('/api')
-helloRoute.get("/hello", async (c) => {
-    const users = await db.select().from(userTestTable);
-    return c.json(users);
-})
-helloRoute.post("/hello", async (c) => {
-    const body = await c.req.json();
-    const user = await db.insert(userTestTable).values(body);
-    return c.json({
-        message: "User created",
-        user: user,
-    });
-})
-export default helloRoute
-\`\`\`
-**Example for Attaching API Route to the ./.server.ts file:**
+- Before writing any apis, check ./src/db/schema.ts, understand the postgres schema and ensure that you are applying the right formats
+- Use Hono as the backend framework. The entry point is \`./server.ts\`. Define all API routes in \`./server.ts\` with base path \`/api\`. Do not create separate route files under \`/api\`; put all route handlers in \`./server.ts\`.
+#### Example for \`./server.ts\` (all routes in one file, base path \`/api\`):
 \`\`\`typescript
 import { Hono } from 'hono'
-import helloRoute from './api/hello'
+import { db } from './src/index'
+import { userTable } from './src/db/schema'
+
 const app = new Hono().basePath('/api')
-app.route('/', helloRoute)
+
+app.get('/users', async (c) => {
+    const users = await db.select().from(userTable)
+    return c.json(users)
+})
+app.post('/users', async (c) => {
+    const body = await c.req.json()
+    const result = await db.insert(userTable).values(body)
+    return c.json({ message: 'User created', user: result })
+})
+
+// Add more routes on app as needed, e.g. app.get('/posts', ...)
 export default app
 \`\`\`
 ### Database
-- Use Drizzle ORM for database operations, \`./src/db/schema.ts\` is the schema export file, Ensure all tables are exported for the schema file.
-- Write database tables using Drizzle ORM in the \`./src/db/tables\` directory.
-### Example for users table in \`./src/db/tables/user.ts\`:
+- Use Drizzle ORM for database operations. Define all database tables in \`./src/db/schema.ts\` and export every table from that file.
+### Example for \`./src/db/schema.ts\` with all tables defined and exported:
 \`\`\`typescript
 import { pgTable, serial, text } from 'drizzle-orm/pg-core'
 
@@ -52,11 +42,15 @@ export const userTable = pgTable('user', {
     id: serial('id').primaryKey(),
     name: text('name').notNull(),
 })
+
+export const postTable = pgTable('post', {
+    id: serial('id').primaryKey(),
+    title: text('title').notNull(),
+    userId: serial('user_id').references(() => userTable.id),
+})
+// Define any other tables here and export them.
 \`\`\`
-### Example for \`./src/db/schema.ts\` file importing the users table:
-\`\`\`typescript
-export * from './tables/user'
-\`\`\`
+Once you have created the database schemas in drizzle, use the \`update-database\` tool
 <context>
 ### Suggested Workflow:
 <workflow>
@@ -65,6 +59,7 @@ export * from './tables/user'
 - if there is a need to update a file, understand the path of the file and the changes to make, you can do so with edit-file tool.
 - if there is a need to search for a file, understand the pattern of the file and the changes to make, you can do so with grep tool.
 - check lint, fix errors if any are found
+- [END]
 <workflow>
 `
 
